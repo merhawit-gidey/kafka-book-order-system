@@ -2,7 +2,7 @@ package com.merry.kafka.controller;
 
 
 import com.merry.kafka.model.BookOrder;
-import com.merry.kafka.producer.BookOrderProducer;
+import com.merry.kafka.service.OrderService;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.*;
 public class OrderController {
 
 
-    private final BookOrderProducer producer;
+    private final OrderService orderService;
 
 
-    public OrderController(BookOrderProducer producer){
+    public OrderController(OrderService orderService){
 
-        this.producer = producer;
+        this.orderService = orderService;
 
     }
 
@@ -28,9 +28,9 @@ public class OrderController {
             @RequestBody BookOrder order
     ){
 
-        producer.sendOrder(order);
+        orderService.createOrder(order);
 
-        return "Order sent successfully";
+        return "Order saved and sent to Kafka";
 
     }
 
