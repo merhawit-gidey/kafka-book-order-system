@@ -1,12 +1,31 @@
 package com.merry.kafka.model;
 
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+
+@Entity
+@Table(name = "book_orders")
 public class BookOrder {
 
+
+    @Id
     private int orderId;
+
     private String customerName;
+
     private String bookName;
+
     private int quantity;
+
     private double price;
+
+
+    // Required by JPA
+    public BookOrder() {
+    }
 
 
     public BookOrder(
@@ -16,11 +35,13 @@ public class BookOrder {
             int quantity,
             double price
     ) {
+
         this.orderId = orderId;
         this.customerName = customerName;
         this.bookName = bookName;
         this.quantity = quantity;
         this.price = price;
+
     }
 
 
@@ -49,16 +70,29 @@ public class BookOrder {
     }
 
 
-    @Override
-    public String toString() {
-
-        return "{"
-                + "\"orderId\":" + orderId + ","
-                + "\"customerName\":\"" + customerName + "\","
-                + "\"bookName\":\"" + bookName + "\","
-                + "\"quantity\":" + quantity + ","
-                + "\"price\":" + price
-                + "}";
-
+    public void setOrderId(int orderId) {
+        this.orderId = orderId;
     }
+
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
+
+    public void setBookName(String bookName) {
+        this.bookName = bookName;
+    }
+
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+
 }
