@@ -1,44 +1,33 @@
 package com.merry.kafka.producer;
 
 
-import org.apache.kafka.clients.producer.*;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.merry.kafka.model.BookOrder;
 
-import java.util.Properties;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
 
 
+
+@Service
 public class BookOrderProducer {
 
 
-    private KafkaProducer<String,String> producer;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
+    private final ObjectMapper objectMapper;
 
 
-    public BookOrderProducer(){
+    private static final String TOPIC = "book-orders";
 
 
-        Properties properties = new Properties();
+    public BookOrderProducer(
+            KafkaTemplate<String, String> kafkaTemplate
+    ){
 
-
-        properties.put(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                "localhost:9092"
-        );
-
-
-        properties.put(
-                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringSerializer"
-        );
-
-
-        properties.put(
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringSerializer"
-        );
-
-
-        producer = new KafkaProducer<>(properties);
+        this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = new ObjectMapper();
 
     }
 
@@ -47,23 +36,32 @@ public class BookOrderProducer {
     public void sendOrder(BookOrder order){
 
 
-        ProducerRecord<String,String> record =
-                new ProducerRecord<>(
-                        "book-orders",
-                        String.valueOf(order.getOrderId()),
-                        order.toString()
-                );
+        try {
+
+            String message =
+                    objectMapper.writeValueAsString(order);
 
 
-        producer.send(record);
+            kafkaTemplate.send(
+                    TOPIC,
+                    String.valueOf(order.getOrderId()),
+                    message
+            );
 
 
-        System.out.println(
-                "Order sent: " + order
-        );
+            System.out.println(
+                    "Order sent: " + message
+            );
 
 
-        producer.close();
+        } catch (JsonProcessingException e){
+
+            throw new RuntimeException(
+                    "Error converting order to JSON",
+                    e
+            );
+
+        }
 
     }
 
