@@ -1,101 +1,250 @@
 # Kafka Book Order System
 
-## Overview
+A Spring Boot application that demonstrates **event-driven communication** using **Apache Kafka**. The application exposes a REST API to receive book orders, stores them in PostgreSQL, and publishes the order as a Kafka message for asynchronous processing.
 
-This project demonstrates a simple event-driven application using Apache Kafka. A Java producer sends book order messages to a Kafka topic, and a Java consumer receives and processes those messages.
+---
+
+## Features
+
+- REST API for creating book orders
+- Apache Kafka Producer
+- Apache Kafka Consumer
+- PostgreSQL database integration using Spring Data JPA
+- JSON serialization with Jackson
+- Docker Compose for Kafka and ZooKeeper
+- Layered architecture (Controller → Service → Repository)
+
+---
 
 ## Technologies Used
 
-* Java 21
-* Apache Kafka
-* Maven
-* Git & GitHub
-* IntelliJ IDEA
+- Java 21
+- Spring Boot
+- Spring Web
+- Spring Data JPA
+- Apache Kafka
+- PostgreSQL
+- Jackson
+- Maven
+- Docker & Docker Compose
+
+---
 
 ## Project Structure
 
 ```
-src
-└── main
-    └── java
-        └── com
-            └── merry
-                └── kafka
-                    ├── config
-                    │   └── KafkaConfig.java
-                    ├── consumer
-                    │   └── BookOrderConsumer.java
-                    ├── model
-                    │   └── BookOrder.java
-                    ├── producer
-                    │   └── BookOrderProducer.java
-                    └── Main.java
+kafka-book-order-system
+│
+├── docker-compose.yml
+├── pom.xml
+├── README.md
+│
+└── src
+    └── main
+        ├── java
+        │   └── com.merry.kafka
+        │       ├── controller
+        │       ├── service
+        │       ├── repository
+        │       ├── producer
+        │       ├── consumer
+        │       ├── model
+        │       └── KafkaBookOrderApplication.java
+        │
+        └── resources
+            └── application.properties
 ```
 
-## How to Run the Project
+---
 
-### 1. Start ZooKeeper
+# System Architecture
+
+```
+                Client
+                   │
+                   │ POST /orders
+                   ▼
+          OrderController
+                   │
+                   ▼
+             OrderService
+             /          \
+            /            \
+           ▼              ▼
+ PostgreSQL Database   Kafka Producer
+      (JPA)                  │
+                              ▼
+                    Kafka Topic (book-orders)
+                              │
+                              ▼
+                     Kafka Consumer
+```
+
+---
+
+## ⚙️ Prerequisites
+
+Install:
+
+- Java 21
+- Maven
+- Docker
+- Docker Compose
+- PostgreSQL
+
+---
+
+## Start Kafka & ZooKeeper
+
+From the project directory:
 
 ```bash
-cd ~/bigdata/kafka
-./bin/zookeeper-server-start.sh ./config/zookeeper.properties
+docker compose up -d
 ```
 
-### 2. Start the Kafka Broker
-
-Open a new terminal and run:
+Verify containers:
 
 ```bash
-cd ~/bigdata/kafka
-./bin/kafka-server-start.sh ./config/server.properties
+docker ps
 ```
 
-### 3. Create the Kafka Topic
+---
+
+## PostgreSQL Setup
+
+Create the database:
+
+```sql
+CREATE DATABASE book_orders;
+```
+
+---
+
+## Application Configuration
+
+`application.properties`
+
+```properties
+spring.kafka.bootstrap-servers=localhost:9092
+
+server.port=8080
+
+spring.datasource.url=jdbc:postgresql://localhost:5432/book_orders
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_PASSWORD
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+```
+
+Replace `YOUR_PASSWORD` with your PostgreSQL password.
+
+---
+
+## Run the Application
 
 ```bash
-cd ~/bigdata/kafka
-
-./bin/kafka-topics.sh \
---create \
---topic book-orders \
---bootstrap-server localhost:9092 \
---partitions 1 \
---replication-factor 1
+mvn spring-boot:run
 ```
 
-If the topic already exists, Kafka will display a message indicating that.
+---
 
-### 4. Run the Consumer
+## REST API
 
-Run the `BookOrderConsumer` class from IntelliJ.
+### Create Order
 
-The consumer will wait for incoming messages.
+**POST**
 
-### 5. Run the Producer
+```
+http://localhost:8080/orders
+```
 
-Run the `Main` class from IntelliJ.
+### Request Body
 
-The producer will publish book order messages to the `book-orders` topic.
+```json
+{
+  "orderId": 1,
+  "customerName": "Merhawit",
+  "bookName": "Kafka Fundamentals",
+  "quantity": 1,
+  "price": 35.99
+}
+```
 
-### 6. Expected Output
+### Response
 
-Consumer output:
+```
+Order saved and sent to Kafka
+```
 
-```text
+---
+
+## Verify Database
+
+Open PostgreSQL:
+
+```sql
+SELECT * FROM book_orders;
+```
+
+Example:
+
+| order_id | customer_name | book_name | quantity | price |
+|----------:|---------------|-----------|----------|------:|
+| 1 | Merhawit | Kafka Fundamentals | 1 | 35.99 |
+
+---
+
+## Kafka Consumer Output
+
+```
 Received Order:
-{"orderId":1,"customerName":"Merhawit","bookName":"Kafka Fundamentals","quantity":1,"price":35.99}
+
+{
+  "orderId": 1,
+  "customerName": "Merhawit",
+  "bookName": "Kafka Fundamentals",
+  "quantity": 1,
+  "price": 35.99
+}
 ```
 
-## Project Workflow
+---
 
-```
-BookOrderProducer
-        |
-        v
-Kafka Topic (book-orders)
-        |
-        v
-BookOrderConsumer
+## Test with cURL
+
+```bash
+curl -X POST http://localhost:8080/orders \
+-H "Content-Type: application/json" \
+-d '{
+  "orderId":2,
+  "customerName":"Merhawit",
+  "bookName":"Spring Boot in Action",
+  "quantity":1,
+  "price":45.99
+}'
 ```
 
-The producer publishes messages to Kafka, and the consumer subscribes to the topic and processes each message independently.
+---
+
+## Workflow
+
+1. Client sends a POST request.
+2. Spring Boot receives the request.
+3. The order is saved to PostgreSQL.
+4. The order is published to Kafka.
+5. Kafka Consumer receives the message.
+6. Consumer processes the event.
+
+---
+
+## Future Improvements
+
+- Dockerize the Spring Boot application
+- Kafka Streams integration
+- Authentication with Spring Security
+- Unit and Integration Tests
+- Swagger/OpenAPI documentation
+- Kafka monitoring with Kafka UI
+- CI/CD using GitHub Actions
